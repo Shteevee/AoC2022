@@ -18,8 +18,8 @@ type Monkey struct {
 	itemsInspected int
 }
 
-func (monkey Monkey) performOperation(testDivisorSum int) Monkey {
-	monkey.items[0] = monkey.operation(monkey.items[0]) % testDivisorSum
+func (monkey Monkey) performOperation(testDivisorProduct int) Monkey {
+	monkey.items[0] = monkey.operation(monkey.items[0]) % testDivisorProduct
 	monkey.itemsInspected++
 	return monkey
 }
@@ -76,7 +76,7 @@ func parseTest(scanner *bufio.Scanner) (func(n int) int, int) {
 
 func parseMonkeys(scanner *bufio.Scanner) ([]Monkey, int) {
 	monkeys := make([]Monkey, 0)
-	testDivisorSum := 1
+	testDivisorProduct := 1
 	for scanner.Scan() {
 		scanner.Scan()
 		items := parseItems(scanner.Text())
@@ -85,7 +85,7 @@ func parseMonkeys(scanner *bufio.Scanner) ([]Monkey, int) {
 		scanner.Scan()
 		test, testDivisor := parseTest(scanner)
 		scanner.Scan()
-		testDivisorSum *= testDivisor
+		testDivisorProduct *= testDivisor
 		monkeys = append(
 			monkeys,
 			Monkey{
@@ -96,7 +96,7 @@ func parseMonkeys(scanner *bufio.Scanner) ([]Monkey, int) {
 			},
 		)
 	}
-	return monkeys, testDivisorSum
+	return monkeys, testDivisorProduct
 }
 
 func cutIndex(i int, items []int) (int, []int) {
@@ -115,11 +115,11 @@ func throwToMonkey(
 	return monkeys
 }
 
-func performRounds(monkeys []Monkey, testDivisorSum int, rounds int) []Monkey {
+func performRounds(monkeys []Monkey, testDivisorProduct int, rounds int) []Monkey {
 	for round := 0; round < rounds; round++ {
 		for m := range monkeys {
 			for len(monkeys[m].items) > 0 {
-				monkeys[m] = monkeys[m].performOperation(testDivisorSum)
+				monkeys[m] = monkeys[m].performOperation(testDivisorProduct)
 				throwTo := monkeys[m].performTest()
 				monkeys = throwToMonkey(monkeys, m, throwTo)
 			}
@@ -152,8 +152,8 @@ func main() {
 	}()
 
 	scanner := bufio.NewScanner(file)
-	monkeys, testDivisorSum := parseMonkeys(scanner)
-	monkeys = performRounds(monkeys, testDivisorSum, 10000)
+	monkeys, testDivisorProduct := parseMonkeys(scanner)
+	monkeys = performRounds(monkeys, testDivisorProduct, 10000)
 	monkeyBusinessLevel := calculateMonkeyBusinesLevel(monkeys)
 
 	elapsed := time.Since(start)
