@@ -6,6 +6,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -20,6 +21,11 @@ type Sensor struct {
 	pos    Point
 	beacon Point
 	sRange int
+}
+
+type Range struct {
+	min int
+	max int
 }
 
 func abs(n int) int {
@@ -96,14 +102,60 @@ func countSensorCoveredPosAtY(sensors []Sensor, targetY int) int {
 	return maxX - minX + 1
 }
 
-func beaconsOnTargetY(sensors []Sensor, targetY int) map[Point]struct{} {
+func beaconsOnTargetY(sensors []Sensor, targetY int) int {
 	beaconsOnTargetY := make(map[Point]struct{})
 	for _, sensor := range sensors {
 		if sensor.beacon.y == targetY {
 			beaconsOnTargetY[sensor.beacon] = struct{}{}
 		}
 	}
-	return beaconsOnTargetY
+	return len(beaconsOnTargetY)
+}
+
+func calculateTuningFreq(p Point) int {
+	return p.x*4000000 + p.y
+}
+
+func rangeBreakPos(ranges []Range) int {
+	sort.Slice(ranges, func(i, j int) bool {
+		if ranges[i].min == ranges[j].min {
+			return ranges[i].max < ranges[j].max
+		}
+		return ranges[i].min < ranges[j].min
+	})
+	maxX := ranges[0].max
+	for i := 1; i < len(ranges); i++ {
+		if maxX < ranges[i].min {
+			return maxX + 1
+		} else if maxX < ranges[i].max {
+			maxX = ranges[i].max
+		}
+	}
+	return -1
+}
+
+func findDistressBeacon(sensors []Sensor, maxY int) Point {
+	rangeBreakX := -1
+	y := 0
+	for ; y <= maxY; y++ {
+		xRanges := make([]Range, 0)
+		for _, sensor := range sensors {
+			sensorWidthAtTarget := calculateSensorWidthAtY(sensor, abs(y-sensor.pos.y))
+			if sensorWidthAtTarget > 0 {
+				halfWidth := (sensorWidthAtTarget - 1) / 2
+				xRange := Range{
+					min: sensor.pos.x - halfWidth,
+					max: sensor.pos.x + halfWidth,
+				}
+				xRanges = append(xRanges, xRange)
+			}
+		}
+		rangeBreakX = rangeBreakPos(xRanges)
+		if rangeBreakX > -1 {
+			break
+		}
+	}
+	return Point{x: rangeBreakX, y: y}
 }
 
 func main() {
@@ -119,13 +171,16 @@ func main() {
 	}()
 
 	targetY := 2000000
+	maxY := 4000000
 	scanner := bufio.NewScanner(file)
 	sensors := parseSensors(scanner)
 	sensorsInRange := findSensorsInRangeOfY(sensors, targetY)
 	coveredTargetYPosCount := countSensorCoveredPosAtY(sensorsInRange, targetY)
 	beaconsOnTargetY := beaconsOnTargetY(sensors, targetY)
+	distressBeacon := findDistressBeacon(sensors, maxY)
 
 	elapsed := time.Since(start)
-	fmt.Println("Cannot contain a beacon:", coveredTargetYPosCount-len(beaconsOnTargetY))
+	fmt.Println("Cannot contain a beacon:", coveredTargetYPosCount-beaconsOnTargetY)
+	fmt.Println("Distress beacon tuning frequency:", calculateTuningFreq(distressBeacon))
 	log.Printf("Time taken: %s", elapsed)
 }
