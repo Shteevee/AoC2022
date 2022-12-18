@@ -177,16 +177,17 @@ func calcOptimalPressureRelease(
 	flowRate int,
 	totalFlow int,
 	openValves map[*Valve]bool,
-) int {
+) (int, map[*Valve]bool) {
 	if time == 0 {
-		return totalFlow
+		return totalFlow, openValves
 	}
 	if len(openValves) == len(currentValve.valveDistances)+1 {
-		return totalFlow + flowRate*time
+		return totalFlow + flowRate*time, openValves
 	}
 	if !enoughRemainingTimeToTravel(currentValve.valveDistances, openValves, time) {
-		return totalFlow + flowRate*time
+		return totalFlow + flowRate*time, openValves
 	}
+	var maxOpenedValves map[*Valve]bool
 	localMaxFlowRate := totalFlow
 	for nextValve := range currentValve.valveDistances {
 		if !openValves[nextValve] {
@@ -194,7 +195,7 @@ func calcOptimalPressureRelease(
 			nextOpenValves[nextValve] = true
 			timeStep := currentValve.valveDistances[nextValve] + 1
 			if time-timeStep >= 0 {
-				nextFlowRate := calcOptimalPressureRelease(
+				nextFlowRate, openedValves := calcOptimalPressureRelease(
 					nextValve,
 					time-timeStep,
 					flowRate+nextValve.flowRate,
@@ -203,11 +204,12 @@ func calcOptimalPressureRelease(
 				)
 				if nextFlowRate > localMaxFlowRate {
 					localMaxFlowRate = nextFlowRate
+					maxOpenedValves = openedValves
 				}
 			}
 		}
 	}
-	return localMaxFlowRate
+	return localMaxFlowRate, maxOpenedValves
 }
 
 func main() {
@@ -225,10 +227,15 @@ func main() {
 	scanner := bufio.NewScanner(file)
 	valves := parseValves(scanner)
 	contructPathDistances(valves)
-	optimalPressureRelease := calcOptimalPressureRelease(findValve(valves, "AA"), 30, 0, 0, make(map[*Valve]bool))
+	optimalPressureRelease, _ := calcOptimalPressureRelease(findValve(valves, "AA"), 30, 0, 0, make(map[*Valve]bool))
+	optimalPressureRelease2, openedValves := calcOptimalPressureRelease(findValve(valves, "AA"), 26, 0, 0, make(map[*Valve]bool))
+	// think this works because we can't get to every valve,
+	// even with two of us (or it's luck)
+	// P.S does not work for test input because not enough valves
+	elephantOptimalPressureRelease, _ := calcOptimalPressureRelease(findValve(valves, "AA"), 26, 0, 0, openedValves)
 
 	elapsed := time.Since(start)
-	fmt.Println(valves)
-	fmt.Println(optimalPressureRelease)
+	fmt.Println("Optimal pressure release: ", optimalPressureRelease)
+	fmt.Println("Optimal pressure release w/ elephant friend: ", optimalPressureRelease2+elephantOptimalPressureRelease)
 	log.Printf("Time taken: %s", elapsed)
 }
