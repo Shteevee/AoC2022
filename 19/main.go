@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"log"
-	"math"
 	"os"
 	"regexp"
 	"strconv"
@@ -147,7 +146,7 @@ func calcTimeTaken(cost int, stock int, bots int) int {
 	if stock >= cost {
 		return 1
 	}
-	return int(math.Ceil(float64(cost-stock)/float64(bots))) + 1
+	return ((cost - stock + bots - 1) / bots) + 1
 }
 
 func findMaxGeodesOfBlueprint(maxTime int, blueprint Blueprint, state State) int {
