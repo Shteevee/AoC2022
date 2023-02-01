@@ -213,17 +213,15 @@ func calcQualityLevelSum(blueprints []Blueprint) int {
 }
 
 func calcMaxGeodeProduct(blueprints []Blueprint) int {
-	geodeProduct := 1
 	maxGeodes := make(chan int, len(blueprints))
 	for _, blueprint := range blueprints {
 		go func(bp Blueprint) {
 			maxGeodes <- findMaxGeodesOfBlueprint(PART_2_MAX_TIME, bp, State{oreBots: 1})
 		}(blueprint)
 	}
-	maxGeodesFound := 0
-	for maxGeodesFound < len(blueprints) {
+	geodeProduct := 1
+	for i := 0; i < len(blueprints); i++ {
 		maxGeode := <-maxGeodes
-		maxGeodesFound++
 		geodeProduct = geodeProduct * maxGeode
 	}
 	return geodeProduct
